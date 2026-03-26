@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Universal Math Solver</title>
+
+  <!-- External libraries loaded by CDN so this remains one HTML file -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.2/plotly.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.min.mjs" type="module"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #171a21;
+      --panel-2: #1e2330;
+      --text: #f4f7fb;
+      --muted: #aab4c3;
+      --accent: #5ea1ff;
+      --accent-2: #8fd3ff;
+      --border: #2b3242;
+      --good: #2ecc71;
+      --warn: #f39c12;
+      --bad: #ff6b6b;
+      --input: #0d1016;
+      --shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+
+    body.light {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --panel-2: #f8fbff;
+      --text: #111827;
+      --muted: #526172;
+      --accent: #2563eb;
+      --accent-2: #0ea5e9;
+      --border: #d6dfeb;
+      --good: #1f9d55;
+      --warn: #b7791f;
+      --bad: #dc2626;
+      --input: #f8fafc;
+      --shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      min-height: 100%;
+    }
+
+    body {
+      transition: background 0.25s ease, color 0.25s ease;
+    }
+
+    .app {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .title-wrap h1 {
+      margin: 0;
+      font-size: 2rem;
+      letter-spacing: 0.2px;
+    }
+
+    .title-wrap p {
+      margin: 6px 0 0 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .toggle-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 18px;
+    }
+
+    @media (max-width: 1050px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .card h2 {
+      margin-top: 0;
+      font-size: 1.15rem;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    textarea, input[type="text"], input[type="password"], select {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--input);
+      color: var(--text);
+      padding: 12px 14px;
+      outline: none;
+      font-size: 0.98rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    textarea:focus, input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(94,161,255,0.15);
+    }
+
+    textarea {
+      min-height: 190px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 680px) {
+      .row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    button, .file-label {
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, var(--panel-2), var(--panel));
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.12s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+
+    button:hover, .file-label:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+    }
+
+    button.primary {
+      background: linear-gradient(180deg, var(--accent), #357fe6);
+      color: white;
+      border-color: transparent;
+    }
+
+    button.success {
+      background: linear-gradient(180deg, var(--good), #199b55);
+      color: white;
+      border-color: transparent;
+    }
+
+    button.warn {
+      background: linear-gradient(180deg, var(--warn), #c9851e);
+      color: white;
+      border-color: transparent;
+    }
+
+    button.danger {
+      background: linear-gradient(180deg, var(--bad), #d84e4e);
+      color: white;
+      border-color: transparent;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .pill {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+
+    .status {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      white-space: pre-wrap;
+      min-height: 48px;
+      color: var(--muted);
+    }
+
+    .viewer {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+
+    .output-toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .section {
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .answer-box, .steps-box, .ocr-box, .chart-config-box {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+    }
+
+    .answer-box {
+      font-size: 1.04rem;
+    }
+
+    .steps-box {
+      min-height: 140px;
+    }
+
+    .ocr-box {
+      max-height: 220px;
+      overflow: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.92rem;
+      white-space: pre-wrap;
+    }
+
+    .small {
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    .math-render {
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      min-height: 44px;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .preview-img {
+      max-width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: none;
+      margin-top: 12px;
+    }
+
+    #pdfCanvas {
+      max-width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: none;
+      margin-top: 12px;
+    }
+
+    #chart {
+      min-height: 440px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 0.92rem;
+    }
+
+    .checkbox-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .checkbox-row label {
+      margin: 0;
+      font-weight: 500;
+    }
+
+    .inline {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .json-help {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      background: var(--input);
+      border-radius: 10px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body class="dark">
+  <div class="app">
+    <div class="topbar">
+      <div class="title-wrap">
+        <h1>Universal Math Solver</h1>
+        <p>
+          Type a problem, paste a system, upload an image, or upload a PDF.
+          Solve locally or use an external API. Generate answers, steps, plots, and downloadable reports.
+        </p>
+      </div>
+      <div class="toggle-row">
+        <button id="themeToggle">Toggle Light / Dark</button>
+        <span class="pill">Single HTML file</span>
+        <span class="pill">OCR enabled</span>
+        <span class="pill">Chart support</span>
+        <span class="pill">Downloadable report</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Input</h2>
+
+        <div class="section">
+          <label for="problemInput">Math problem or chart request</label>
+          <textarea id="problemInput" placeholder="Examples:
+
+2x + 5 = 17
+solve x^2 - 5x + 6 = 0
+integrate x^2 sin(x)
+differentiate x^3 + 2x
+plot sin(x)
+bar chart: apples=10, oranges=7, bananas=12
+
+For full chart JSON mode:
+{
+  &quot;type&quot;: &quot;bar&quot;,
+  &quot;x&quot;: [&quot;A&quot;, &quot;B&quot;, &quot;C&quot;],
+  &quot;y&quot;: [5, 9, 3],
+  &quot;title&quot;: &quot;Sample Bar Chart&quot;
+}"></textarea>
+          <div class="small">You can type algebra, arithmetic, derivatives, integrals, plots, systems, matrices, chart instructions, or JSON chart configs.</div>
+          <div class="math-render" id="mathPreview">Math preview will appear here when possible.</div>
+        </div>
+
+        <div class="section">
+          <div class="row">
+            <div>
+              <label for="solverMode">Solver mode</label>
+              <select id="solverMode">
+                <option value="auto">Auto</option>
+                <option value="local">Local only</option>
+                <option value="api">API preferred</option>
+              </select>
+            </div>
+            <div>
+              <label for="apiType">API provider</label>
+              <select id="apiType">
+                <option value="openai">OpenAI Responses</option>
+                <option value="wolfram">Wolfram Alpha</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div>
+              <label for="openaiApiKey">OpenAI API key</label>
+              <input id="openaiApiKey" type="password" placeholder="Optional, for browser demo only" />
+            </div>
+            <div>
+              <label for="wolframApiKey">Wolfram App ID</label>
+              <input id="wolframApiKey" type="password" placeholder="Optional, for browser demo only" />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div>
+              <label for="apiBaseUrl">OpenAI base URL</label>
+              <input id="apiBaseUrl" type="text" value="https://api.openai.com/v1/responses" />
+            </div>
+            <div>
+              <label for="customInstructions">Custom solving instructions</label>
+              <input id="customInstructions" type="text" placeholder="Optional guidance for the API solver" />
+            </div>
+          </div>
+
+          <div class="checkbox-row">
+            <div class="inline">
+              <input type="checkbox" id="preferSteps" checked />
+              <label for="preferSteps">Request detailed steps</label>
+            </div>
+            <div class="inline">
+              <input type="checkbox" id="autoPlot" checked />
+              <label for="autoPlot">Auto render graph when requested</label>
+            </div>
+            <div class="inline">
+              <input type="checkbox" id="ocrFirst" checked />
+              <label for="ocrFirst">Use OCR text after upload</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2 style="margin-bottom:10px;">Uploads</h2>
+
+          <div class="btn-row">
+            <label class="file-label" for="imageUpload">Upload Image</label>
+            <input type="file" id="imageUpload" accept="image/*" />
+
+            <label class="file-label" for="pdfUpload">Upload PDF</label>
+            <input type="file" id="pdfUpload" accept="application/pdf" />
+
+            <button id="extractFromUploads">Extract OCR Text</button>
+            <button id="clearUploads">Clear Uploads</button>
+          </div>
+
+          <img id="imagePreview" class="preview-img" alt="Uploaded preview" />
+          <canvas id="pdfCanvas"></canvas>
+
+          <div class="status" id="uploadStatus">No upload processed yet.</div>
+        </div>
+
+        <div class="section">
+          <h2 style="margin-bottom:10px;">Actions</h2>
+          <div class="btn-row">
+            <button class="primary" id="solveBtn">Solve</button>
+            <button id="renderChartBtn">Render Chart</button>
+            <button id="sampleBtn">Load Sample</button>
+            <button id="clearBtn">Clear All</button>
+          </div>
+        </div>
+
+        <div class="footer-note">
+          This app supports local solving for many common tasks, but broad, highly advanced, or ambiguous problems may need an external API.
+          OCR and browser based API calls are convenient for demos, but production use should move secrets to a secure backend.
+        </div>
+      </div>
+
+      <div class="viewer">
+        <div class="card">
+          <h2>Results</h2>
+
+          <div class="output-toolbar">
+            <button id="copyAnswerBtn">Copy Answer</button>
+            <button class="success" id="downloadTxtBtn">Download TXT Report</button>
+            <button class="success" id="downloadHtmlBtn">Download HTML Report</button>
+            <button class="warn" id="copyStepsBtn">Copy Steps</button>
+          </div>
+
+          <div class="section">
+            <label>Final answer</label>
+            <div class="answer-box" id="answerBox">No answer yet.</div>
+          </div>
+
+          <div class="section">
+            <label>Step by step work</label>
+            <div class="steps-box" id="stepsBox">No steps yet.</div>
+          </div>
+
+          <div class="section">
+            <label>OCR / extracted text</label>
+            <div class="ocr-box" id="ocrBox">Nothing extracted yet.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Chart and plot output</h2>
+          <div class="section">
+            <label for="chartConfig">Optional chart JSON config</label>
+            <textarea id="chartConfig" class="chart-config-box" style="min-height:170px;" placeholder='{
+  "type": "bar",
+  "x": ["Q1", "Q2", "Q3", "Q4"],
+  "y": [12, 19, 7, 14],
+  "title": "Quarterly Performance"
+}'></textarea>
+
+            <div class="json-help">Accepted keys:
+type, x, y, z, mode, name, title, xTitle, yTitle, labels, values, bins, color, equation, start, end, step</div>
+          </div>
+
+          <div id="chart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.min.mjs";
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.worker.min.mjs";
+
+    const state = {
+      theme: localStorage.getItem("ums_theme") || "dark",
+      uploadedImageFile: null,
+      uploadedPdfFile: null,
+      imageDataUrl: null,
+      pdfText: "",
+      ocrText: "",
+      lastAnswer: "",
+      lastSteps: "",
+      lastQuestion: "",
+      lastMethod: "",
+      lastChartSpec: null,
+      reportTimestamp: "",
+    };
+
+    const els = {
+      body: document.body,
+      themeToggle: document.getElementById("themeToggle"),
+      problemInput: document.getElementById("problemInput"),
+      mathPreview: document.getElementById("mathPreview"),
+      solverMode: document.getElementById("solverMode"),
+      apiType: document.getElementById("apiType"),
+      openaiApiKey: document.getElementById("openaiApiKey"),
+      wolframApiKey: document.getElementById("wolframApiKey"),
+      apiBaseUrl: document.getElementById("apiBaseUrl"),
+      customInstructions: document.getElementById("customInstructions"),
+      preferSteps: document.getElementById("preferSteps"),
+      autoPlot: document.getElementById("autoPlot"),
+      ocrFirst: document.getElementById("ocrFirst"),
+      imageUpload: document.getElementById("imageUpload"),
+      pdfUpload: document.getElementById("pdfUpload"),
+      extractFromUploads: document.getElementById("extractFromUploads"),
+      clearUploads: document.getElementById("clearUploads"),
+      imagePreview: document.getElementById("imagePreview"),
+      pdfCanvas: document.getElementById("pdfCanvas"),
+      uploadStatus: document.getElementById("uploadStatus"),
+      solveBtn: document.getElementById("solveBtn"),
+      renderChartBtn: document.getElementById("renderChartBtn"),
+      sampleBtn: document.getElementById("sampleBtn"),
+      clearBtn: document.getElementById("clearBtn"),
+      copyAnswerBtn: document.getElementById("copyAnswerBtn"),
+      copyStepsBtn: document.getElementById("copyStepsBtn"),
+      downloadTxtBtn: document.getElementById("downloadTxtBtn"),
+      downloadHtmlBtn: document.getElementById("downloadHtmlBtn"),
+      answerBox: document.getElementById("answerBox"),
+      stepsBox: document.getElementById("stepsBox"),
+      ocrBox: document.getElementById("ocrBox"),
+      chartConfig: document.getElementById("chartConfig"),
+      chart: document.getElementById("chart")
+    };
+
+    function initTheme() {
+      els.body.classList.remove("light", "dark");
+      els.body.classList.add(state.theme);
+    }
+
+    function toggleTheme() {
+      state.theme = state.theme === "dark" ? "light" : "dark";
+      localStorage.setItem("ums_theme", state.theme);
+      initTheme();
+    }
+
+    function safeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function setStatus(msg) {
+      els.uploadStatus.textContent = msg;
+    }
+
+    function setAnswer(text) {
+      state.lastAnswer = text || "";
+      els.answerBox.innerHTML = marked.parse(safeHtml(text || "No answer yet."));
+    }
+
+    function setSteps(text) {
+      state.lastSteps = text || "";
+      els.stepsBox.innerHTML = marked.parse(safeHtml(text || "No steps yet."));
+    }
+
+    function setOCR(text) {
+      state.ocrText = text || "";
+      els.ocrBox.textContent = text || "Nothing extracted yet.";
+    }
+
+    function currentTimestamp() {
+      return new Date().toLocaleString();
+    }
+
+    function updateMathPreview() {
+      const raw = els.problemInput.value.trim();
+      if (!raw) {
+        els.mathPreview.textContent = "Math preview will appear here when possible.";
+        return;
+      }
+
+      const preview = extractLikelyMath(raw);
+      if (!preview) {
+        els.mathPreview.textContent = "Could not detect a clean math expression preview.";
+        return;
+      }
+
+      try {
+        const latex = mathToLatex(preview);
+        els.mathPreview.innerHTML = "";
+        katex.render(latex, els.mathPreview, {
+          throwOnError: false,
+          displayMode: true
+        });
+      } catch {
+        els.mathPreview.textContent = preview;
+      }
+    }
+
+    function extractLikelyMath(text) {
+      const cleaned = text.split("\n")[0].trim();
+      if (!cleaned) return "";
+      return cleaned
+        .replace(/÷/g, "/")
+        .replace(/×/g, "*")
+        .replace(/−/g, "-");
+    }
+
+    function mathToLatex(expr) {
+      let e = expr;
+      e = e.replace(/\*/g, " \\cdot ");
+      e = e.replace(/<=/g, " \\le ");
+      e = e.replace(/>=/g, " \\ge ");
+      e = e.replace(/!=/g, " \\ne ");
+      e = e.replace(/sqrt\((.*?)\)/g, "\\sqrt{$1}");
+      e = e.replace(/pi/g, "\\pi");
+      return e;
+    }
+
+    async function readImageFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function handleImageUpload(file) {
+      state.uploadedImageFile = file;
+      const dataUrl = await readImageFile(file);
+      state.imageDataUrl = dataUrl;
+      els.imagePreview.src = dataUrl;
+      els.imagePreview.style.display = "block";
+      setStatus(`Image loaded: ${file.name}`);
+    }
+
+    async function handlePdfUpload(file) {
+      state.uploadedPdfFile = file;
+      setStatus(`PDF loaded: ${file.name}. Rendering first page...`);
+
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const page = await pdf.getPage(1);
+
+      const viewport = page.getViewport({ scale: 1.5 });
+      const canvas = els.pdfCanvas;
+      const context = canvas.getContext("2d");
+
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      await page.render({
+        canvasContext: context,
+        viewport
+      }).promise;
+
+      canvas.style.display = "block";
+
+      let fullText = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const p = await pdf.getPage(i);
+        const tc = await p.getTextContent();
+        const pageText = tc.items.map(item => item.str).join(" ");
+        fullText += `\n[Page ${i}]\n${pageText}\n`;
+      }
+
+      state.pdfText = fullText.trim();
+      setStatus(`PDF rendered. Extracted selectable text from ${pdf.numPages} page(s).`);
+    }
+
+    async function runImageOCR(dataUrl) {
+      setStatus("Running OCR on uploaded image...");
+      const result = await Tesseract.recognize(dataUrl, "eng", {
+        logger: m => {
+          if (m.status) {
+            setStatus(`Image OCR: ${m.status} ${m.progress ? Math.round(m.progress * 100) + "%" : ""}`);
+          }
+        }
+      });
+      return result.data.text || "";
+    }
+
+    async function runCanvasOCR(canvas) {
+      setStatus("Running OCR on PDF page image...");
+      const dataUrl = canvas.toDataURL("image/png");
+      const result = await Tesseract.recognize(dataUrl, "eng", {
+        logger: m => {
+          if (m.status) {
+            setStatus(`PDF OCR: ${m.status} ${m.progress ? Math.round(m.progress * 100) + "%" : ""}`);
+          }
+        }
+      });
+      return result.data.text || "";
+    }
+
+    async function extractFromUploads() {
+      let combined = "";
+      if (state.uploadedImageFile && state.imageDataUrl) {
+        try {
+          const imageText = await runImageOCR(state.imageDataUrl);
+          combined += `[Image OCR]\n${imageText}\n\n`;
+        } catch (err) {
+          combined += `[Image OCR Error]\n${err.message}\n\n`;
+        }
+      }
+
+      if (state.uploadedPdfFile) {
+        if (state.pdfText) {
+          combined += `[PDF Text Layer]\n${state.pdfText}\n\n`;
+        }
+        if (els.pdfCanvas.style.display !== "none") {
+          try {
+            const pdfOcr = await runCanvasOCR(els.pdfCanvas);
+            combined += `[PDF OCR First Page]\n${pdfOcr}\n\n`;
+          } catch (err) {
+            combined += `[PDF OCR Error]\n${err.message}\n\n`;
+          }
+        }
+      }
+
+      combined = combined.trim();
+      setOCR(combined || "No text could be extracted from uploads.");
+      setStatus(combined ? "OCR extraction complete." : "Nothing extracted.");
+    }
+
+    function normalizeExpression(expr) {
+      return expr
+        .trim()
+        .replace(/÷/g, "/")
+        .replace(/×/g, "*")
+        .replace(/[“”]/g, '"')
+        .replace(/[‘’]/g, "'")
+        .replace(/\^/g, "^")
+        .replace(/\s+/g, " ");
+    }
+
+    function isLikelyChartRequest(text) {
+      const t = text.toLowerCase();
+      return (
+        t.includes("plot ") ||
+        t.includes("graph ") ||
+        t.includes("bar chart") ||
+        t.includes("line chart") ||
+        t.includes("scatter") ||
+        t.includes("histogram") ||
+        t.includes("pie chart") ||
+        t.startsWith("{") ||
+        t.includes('"type"')
+      );
+    }
+
+    function isEquation(expr) {
+      return expr.includes("=") && !expr.toLowerCase().includes("bar chart");
+    }
+
+    function isDerivativeRequest(text) {
+      const t = text.toLowerCase();
+      return t.startsWith("differentiate ") || t.startsWith("derivative ");
+    }
+
+    function isIntegralRequest(text) {
+      const t = text.toLowerCase();
+      return t.startsWith("integrate ") || t.startsWith("integral ");
+    }
+
+    function isSimplifyRequest(text) {
+      const t = text.toLowerCase();
+      return t.startsWith("simplify ");
+    }
+
+    function isEvaluateRequest(text) {
+      const t = text.toLowerCase();
+      return t.startsWith("evaluate ");
+    }
+
+    function isMatrixRequest(text) {
+      return text.includes("[[") && text.includes("]]");
+    }
+
+    function isSystemRequest(text) {
+      const lines = text.split("\n").map(x => x.trim()).filter(Boolean);
+      const eqLines = lines.filter(x => x.includes("="));
+      return eqLines.length >= 2;
+    }
+
+    function extractExpressionAfterKeyword(text, keywords) {
+      let value = text.trim();
+      for (const k of keywords) {
+        if (value.toLowerCase().startsWith(k)) {
+          return value.slice(k.length).trim();
+        }
+      }
+      return value;
+    }
+
+    function tryLocalNumericEval(expr) {
+      const result = math.evaluate(expr);
+      return result;
+    }
+
+    function parseLinearEquation(eq) {
+      const cleaned = eq.replace(/\s+/g, "");
+      const [left, right] = cleaned.split("=");
+      if (right === undefined) throw new Error("Equation must contain '='.");
+
+      const expr = `(${left}) - (${right})`;
+      const simplified = math.simplify(expr).toString();
+
+      let a = 0;
+      let b = 0;
+
+      const probe0 = math.evaluate(simplified, { x: 0 });
+      const probe1 = math.evaluate(simplified, { x: 1 });
+
+      b = probe0;
+      a = probe1 - probe0;
+
+      return { a, b, simplified };
+    }
+
+    function solveSingleVariableLinear(eq) {
+      const { a, b, simplified } = parseLinearEquation(eq);
+      if (a === 0) {
+        if (b === 0) {
+          return {
+            answer: "Infinite solutions",
+            steps: [
+              `Rearranged equation to ${simplified} = 0`,
+              `The coefficient of x is 0 and the constant term is also 0.`,
+              `Therefore, every real value of x satisfies the equation.`
+            ].join("\n")
+          };
+        }
+        return {
+          answer: "No solution",
+          steps: [
+            `Rearranged equation to ${simplified} = 0`,
+            `The coefficient of x is 0 but the constant term is not 0.`,
+            `This creates a contradiction, so there is no solution.`
+          ].join("\n")
+        };
+      }
+
+      const x = -b / a;
+      return {
+        answer: `x = ${x}`,
+        steps: [
+          `Start with ${eq}`,
+          `Move all terms to one side: ${simplified} = 0`,
+          `This has the form ${a}x + ${b} = 0`,
+          `Subtract ${b} from both sides`,
+          `${a}x = ${-b}`,
+          `Divide both sides by ${a}`,
+          `x = ${x}`
+        ].join("\n")
+      };
+    }
+
+    function solveQuadratic(eq) {
+      const cleaned = eq.replace(/\s+/g, "");
+      const [left, right] = cleaned.split("=");
+      const expr = math.simplify(`(${left}) - (${right})`).toString();
+
+      const c = math.evaluate(expr, { x: 0 });
+      const v1 = math.evaluate(expr, { x: 1 });
+      const v2 = math.evaluate(expr, { x: 2 });
+
+      const aPlusB = v1 - c;
+      const fourAPlus2B = v2 - c;
+      const a = (fourAPlus2B - 2 * aPlusB) / 2;
+      const b = aPlusB - a;
+      const discriminant = b * b - 4 * a * c;
+
+      let roots;
+      if (discriminant >= 0) {
+        roots = [
+          (-b + Math.sqrt(discriminant)) / (2 * a),
+          (-b - Math.sqrt(discriminant)) / (2 * a)
+        ];
+      } else {
+        const real = -b / (2 * a);
+        const imag = Math.sqrt(-discriminant) / (2 * a);
+        roots = [`${real} + ${imag}i`, `${real} - ${imag}i`];
+      }
+
+      return {
+        answer: `x = ${roots[0]}, ${roots[1]}`,
+        steps: [
+          `Start with ${eq}`,
+          `Move everything to one side: ${expr} = 0`,
+          `Identify coefficients: a = ${a}, b = ${b}, c = ${c}`,
+          `Use the quadratic formula: x = (-b ± sqrt(b^2 - 4ac)) / (2a)`,
+          `Discriminant = ${discriminant}`,
+          `Solutions: ${roots[0]} and ${roots[1]}`
+        ].join("\n")
+      };
+    }
+
+    function localDerivative(text) {
+      const expr = extractExpressionAfterKeyword(text, ["differentiate ", "derivative "]);
+      const derivative = math.derivative(expr, "x").toString();
+      return {
+        answer: derivative,
+        steps: [
+          `Problem: differentiate ${expr}`,
+          `Variable assumed: x`,
+          `Computed derivative: ${derivative}`
+        ].join("\n")
+      };
+    }
+
+    function localSimplify(text) {
+      const expr = extractExpressionAfterKeyword(text, ["simplify "]);
+      const simplified = math.simplify(expr).toString();
+      return {
+        answer: simplified,
+        steps: [
+          `Problem: simplify ${expr}`,
+          `Simplified result: ${simplified}`
+        ].join("\n")
+      };
+    }
+
+    function localEvaluate(text) {
+      const expr = extractExpressionAfterKeyword(text, ["evaluate "]);
+      const value = math.evaluate(expr);
+      return {
+        answer: String(value),
+        steps: [
+          `Problem: evaluate ${expr}`,
+          `Computed value: ${value}`
+        ].join("\n")
+      };
+    }
+
+    function localIntegral(text) {
+      const expr = extractExpressionAfterKeyword(text, ["integrate ", "integral "]).trim();
+      const simpleMap = {
+        "x": "x^2 / 2 + C",
+        "x^2": "x^3 / 3 + C",
+        "x^3": "x^4 / 4 + C",
+        "sin(x)": "-cos(x) + C",
+        "cos(x)": "sin(x) + C",
+        "1/x": "ln(abs(x)) + C",
+        "exp(x)": "exp(x) + C",
+        "e^x": "e^x + C"
+      };
+
+      const direct = simpleMap[expr];
+      if (direct) {
+        return {
+          answer: direct,
+          steps: [
+            `Problem: integrate ${expr}`,
+            `Used built in local antiderivative rule`,
+            `Result: ${direct}`
+          ].join("\n")
+        };
+      }
+
+      throw new Error("Local integral engine is limited. Use API mode for broader symbolic integration.");
+    }
+
+    function trySolveSystem(text) {
+      const lines = text.split("\n").map(x => x.trim()).filter(Boolean);
+      const eqs = lines.filter(x => x.includes("="));
+
+      if (eqs.length !== 2) {
+        throw new Error("Local system solver currently supports 2 equations in 2 unknowns.");
+      }
+
+      const vars = ["x", "y"];
+      const matrix = [];
+      const constants = [];
+
+      for (const eq of eqs) {
+        const [left, right] = eq.split("=");
+        const expr = math.simplify(`(${left}) - (${right})`).toString();
+
+        const c = math.evaluate(expr, { x: 0, y: 0 });
+        const ax = math.evaluate(expr, { x: 1, y: 0 }) - c;
+        const by = math.evaluate(expr, { x: 0, y: 1 }) - c;
+
+        matrix.push([ax, by]);
+        constants.push(-c);
+      }
+
+      const det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+      if (det === 0) throw new Error("System determinant is zero. No unique local solution.");
+
+      const x = (constants[0] * matrix[1][1] - matrix[0][1] * constants[1]) / det;
+      const y = (matrix[0][0] * constants[1] - constants[0] * matrix[1][0]) / det;
+
+      return {
+        answer: `x = ${x}, y = ${y}`,
+        steps: [
+          `System detected:`,
+          ...eqs,
+          ``,
+          `Coefficient matrix: ${JSON.stringify(matrix)}`,
+          `Constants vector: ${JSON.stringify(constants)}`,
+          `Determinant: ${det}`,
+          `Solution: x = ${x}, y = ${y}`
+        ].join("\n")
+      };
+    }
+
+    function tryLocalSolve(problem) {
+      const text = normalizeExpression(problem);
+
+      if (isDerivativeRequest(text)) {
+        return { ...localDerivative(text), method: "Local derivative engine" };
+      }
+
+      if (isIntegralRequest(text)) {
+        return { ...localIntegral(text), method: "Local integral engine" };
+      }
+
+      if (isSimplifyRequest(text)) {
+        return { ...localSimplify(text), method: "Local simplifier" };
+      }
+
+      if (isEvaluateRequest(text)) {
+        return { ...localEvaluate(text), method: "Local evaluator" };
+      }
+
+      if (isSystemRequest(text)) {
+        return { ...trySolveSystem(text), method: "Local linear system solver" };
+      }
+
+      if (isEquation(text)) {
+        try {
+          const linear = solveSingleVariableLinear(text);
+          return { ...linear, method: "Local linear equation solver" };
+        } catch (_) {}
+
+        try {
+          const quad = solveQuadratic(text);
+          return { ...quad, method: "Local quadratic solver" };
+        } catch (_) {}
+      }
+
+      try {
+        const value = tryLocalNumericEval(text);
+        return {
+          answer: String(value),
+          steps: [
+            `Input interpreted as an evaluable expression.`,
+            `Expression: ${text}`,
+            `Result: ${value}`
+          ].join("\n"),
+          method: "Local numeric evaluator"
+        };
+      } catch (err) {
+        throw new Error(`Local solve failed: ${err.message}`);
+      }
+    }
+
+    async function solveWithOpenAI(problem) {
+      const apiKey = els.openaiApiKey.value.trim();
+      const baseUrl = els.apiBaseUrl.value.trim();
+      if (!apiKey) {
+        throw new Error("OpenAI API key is missing.");
+      }
+
+      const extra = els.customInstructions.value.trim();
+      const wantSteps = els.preferSteps.checked;
+
+      const prompt = `
+You are a rigorous math solving engine.
+
+Solve the user's math problem as accurately as possible.
+When appropriate, include:
+1. final_answer
+2. step_by_step
+3. chart_instruction if a graph or chart is needed
+4. notes if OCR ambiguity or uncertainty exists
+
+Return ONLY valid JSON with this exact schema:
+{
+  "final_answer": "string",
+  "step_by_step": "string",
+  "chart_instruction": {
+    "type": "line|bar|scatter|histogram|pie|null",
+    "title": "string",
+    "x": [],
+    "y": [],
+    "labels": [],
+    "values": [],
+    "equation": "string",
+    "start": -10,
+    "end": 10,
+    "step": 0.1
+  },
+  "notes": "string"
+}
+
+If the input includes OCR text, use it carefully and mention ambiguity in notes.
+${wantSteps ? "Provide detailed steps." : "Keep steps concise."}
+${extra ? "Additional instruction: " + extra : ""}
+Problem:
+${problem}
+      `.trim();
+
+      const response = await fetch(baseUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "gpt-5",
+          input: prompt
+        })
+      });
+
+      if (!response.ok) {
+        const t = await response.text();
+        throw new Error(`OpenAI API error ${response.status}: ${t}`);
+      }
+
+      const data = await response.json();
+      const text = extractTextFromOpenAIResponse(data);
+      const parsed = parseJsonLoose(text);
+
+      if (!parsed || !parsed.final_answer) {
+        throw new Error("Could not parse structured JSON from OpenAI response.");
+      }
+
+      return {
+        answer: parsed.final_answer || "",
+        steps: [parsed.step_by_step || "", parsed.notes ? `Notes: ${parsed.notes}` : ""].filter(Boolean).join("\n\n"),
+        chartInstruction: parsed.chart_instruction || null,
+        method: "OpenAI API"
+      };
+    }
+
+    function extractTextFromOpenAIResponse(data) {
+      if (typeof data.output_text === "string") return data.output_text;
+
+      if (Array.isArray(data.output)) {
+        const texts = [];
+        for (const item of data.output) {
+          if (Array.isArray(item.content)) {
+            for (const c of item.content) {
+              if (c.type === "output_text" && c.text) {
+                texts.push(c.text);
+              }
+            }
+          }
+        }
+        if (texts.length) return texts.join("\n");
+      }
+
+      return JSON.stringify(data);
+    }
+
+    function parseJsonLoose(text) {
+      try {
+        return JSON.parse(text);
+      } catch (_) {}
+
+      const match = text.match(/\{[\s\S]*\}/);
+      if (match) {
+        try {
+          return JSON.parse(match[0]);
+        } catch (_) {}
+      }
+      return null;
+    }
+
+    async function solveWithWolfram(problem) {
+      const appId = els.wolframApiKey.value.trim();
+      if (!appId) {
+        throw new Error("Wolfram App ID is missing.");
+      }
+
+      const url = `https://api.wolframalpha.com/v2/query?input=${encodeURIComponent(problem)}&appid=${encodeURIComponent(appId)}&output=json`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Wolfram API error ${response.status}`);
+      }
+
+      const data = await response.json();
+      const pods = data.queryresult?.pods || [];
+
+      let answer = "";
+      let steps = [];
+
+      for (const pod of pods) {
+        const title = pod.title || "Untitled";
+        const subpods = pod.subpods || [];
+        const podText = subpods.map(s => s.plaintext).filter(Boolean).join("\n");
+        if (!answer && /result|solution|definite integral|derivative|roots/i.test(title)) {
+          answer = podText;
+        }
+        if (podText) {
+          steps.push(`${title}\n${podText}`);
+        }
+      }
+
+      if (!answer) {
+        answer = steps[0] || "No explicit answer found.";
+      }
+
+      return {
+        answer,
+        steps: steps.join("\n\n"),
+        method: "Wolfram Alpha API"
+      };
+    }
+
+    function mergeProblemSources() {
+      let base = els.problemInput.value.trim();
+
+      if (els.ocrFirst.checked) {
+        const extras = [];
+        if (state.ocrText) extras.push(`[OCR Extracted Text]\n${state.ocrText}`);
+        else {
+          if (state.pdfText) extras.push(`[PDF Text Layer]\n${state.pdfText}`);
+        }
+
+        if (extras.length) {
+          base = `${base}\n\n${extras.join("\n\n")}`.trim();
+        }
+      }
+
+      return base;
+    }
+
+    async function solveProblem() {
+      const combinedProblem = mergeProblemSources().trim();
+      if (!combinedProblem) {
+        setAnswer("Please enter a problem or upload content first.");
+        setSteps("There is nothing to solve yet.");
+        return;
+      }
+
+      state.lastQuestion = combinedProblem;
+      state.reportTimestamp = currentTimestamp();
+      setAnswer("Solving...");
+      setSteps("Working on the problem...");
+
+      if (isLikelyChartRequest(els.problemInput.value.trim()) && els.autoPlot.checked) {
+        try {
+          const spec = deriveChartSpec(els.problemInput.value.trim(), els.chartConfig.value.trim());
+          renderChartFromSpec(spec);
+        } catch {}
+      }
+
+      const mode = els.solverMode.value;
+      const apiType = els.apiType.value;
+
+      try {
+        let result;
+
+        if (mode === "local") {
+          result = tryLocalSolve(combinedProblem);
+        } else if (mode === "api") {
+          result = apiType === "openai"
+            ? await solveWithOpenAI(combinedProblem)
+            : await solveWithWolfram(combinedProblem);
+        } else {
+          try {
+            result = tryLocalSolve(combinedProblem);
+          } catch (localErr) {
+            if (apiType === "openai") {
+              result = await solveWithOpenAI(combinedProblem);
+            } else {
+              result = await solveWithWolfram(combinedProblem);
+            }
+          }
+        }
+
+        state.lastMethod = result.method || "Unknown method";
+        setAnswer(result.answer || "No answer returned.");
+        setSteps((result.steps || "No steps returned.") + `\n\nMethod: ${state.lastMethod}`);
+
+        if (result.chartInstruction && els.autoPlot.checked) {
+          try {
+            renderChartFromSpec(result.chartInstruction);
+          } catch (err) {
+            setSteps(state.lastSteps + `\n\nChart rendering note: ${err.message}`);
+          }
+        }
+      } catch (err) {
+        setAnswer(`Error: ${err.message}`);
+        setSteps([
+          `The requested solve path failed.`,
+          `Details: ${err.message}`,
+          `Try switching solver mode, cleaning OCR text, or using an API provider for broader symbolic support.`
+        ].join("\n"));
+      }
+    }
+
+    function deriveChartSpec(problemText, chartJsonText) {
+      const trimmedJson = chartJsonText.trim();
+      if (trimmedJson) {
+        const parsed = JSON.parse(trimmedJson);
+        return normalizeChartSpec(parsed);
+      }
+
+      const p = problemText.trim();
+
+      if (p.startsWith("{")) {
+        return normalizeChartSpec(JSON.parse(p));
+      }
+
+      const lower = p.toLowerCase();
+
+      if (lower.startsWith("plot ")) {
+        const equation = p.slice(5).trim();
+        return normalizeChartSpec({
+          type: "line",
+          equation,
+          start: -10,
+          end: 10,
+          step: 0.1,
+          title: `Plot of ${equation}`
+        });
+      }
+
+      if (lower.startsWith("graph ")) {
+        const equation = p.slice(6).trim();
+        return normalizeChartSpec({
+          type: "line",
+          equation,
+          start: -10,
+          end: 10,
+          step: 0.1,
+          title: `Graph of ${equation}`
+        });
+      }
+
+      if (lower.startsWith("bar chart:")) {
+        const rest = p.split(":").slice(1).join(":").trim();
+        const parts = rest.split(",").map(x => x.trim()).filter(Boolean);
+        const x = [];
+        const y = [];
+        for (const part of parts) {
+          const [label, value] = part.split("=");
+          x.push((label || "").trim());
+          y.push(Number((value || "").trim()));
+        }
+        return normalizeChartSpec({
+          type: "bar",
+          x,
+          y,
+          title: "Bar Chart"
+        });
+      }
+
+      if (lower.startsWith("pie chart:")) {
+        const rest = p.split(":").slice(1).join(":").trim();
+        const parts = rest.split(",").map(x => x.trim()).filter(Boolean);
+        const labels = [];
+        const values = [];
+        for (const part of parts) {
+          const [label, value] = part.split("=");
+          labels.push((label || "").trim());
+          values.push(Number((value || "").trim()));
+        }
+        return normalizeChartSpec({
+          type: "pie",
+          labels,
+          values,
+          title: "Pie Chart"
+        });
+      }
+
+      throw new Error("Could not derive a chart spec from input.");
+    }
+
+    function normalizeChartSpec(spec) {
+      return {
+        type: spec.type || "line",
+        x: Array.isArray(spec.x) ? spec.x : [],
+        y: Array.isArray(spec.y) ? spec.y : [],
+        z: Array.isArray(spec.z) ? spec.z : [],
+        mode: spec.mode || "lines",
+        name: spec.name || "Series 1",
+        title: spec.title || "Chart",
+        xTitle: spec.xTitle || "x",
+        yTitle: spec.yTitle || "y",
+        labels: Array.isArray(spec.labels) ? spec.labels : [],
+        values: Array.isArray(spec.values) ? spec.values : [],
+        equation: spec.equation || "",
+        start: Number.isFinite(spec.start) ? spec.start : -10,
+        end: Number.isFinite(spec.end) ? spec.end : 10,
+        step: Number.isFinite(spec.step) ? spec.step : 0.1
+      };
+    }
+
+    function generateSeriesFromEquation(equation, start, end, step) {
+      const x = [];
+      const y = [];
+
+      for (let v = start; v <= end; v += step) {
+        let result;
+        try {
+          result = math.evaluate(equation, { x: v });
+        } catch {
+          result = NaN;
+        }
+        x.push(Number(v.toFixed(10)));
+        y.push(Number.isFinite(result) ? result : null);
+      }
+
+      return { x, y };
+    }
+
+    function renderChartFromSpec(inputSpec) {
+      const spec = normalizeChartSpec(inputSpec);
+      state.lastChartSpec = spec;
+
+      let data = [];
+      const layout = {
+        title: spec.title,
+        paper_bgcolor: getComputedStyle(document.body).getPropertyValue("--panel-2").trim(),
+        plot_bgcolor: getComputedStyle(document.body).getPropertyValue("--panel-2").trim(),
+        font: {
+          color: getComputedStyle(document.body).getPropertyValue("--text").trim()
+        },
+        xaxis: { title: spec.xTitle },
+        yaxis: { title: spec.yTitle }
+      };
+
+      if (spec.type === "line") {
+        let x = spec.x;
+        let y = spec.y;
+
+        if ((!x.length || !y.length) && spec.equation) {
+          const series = generateSeriesFromEquation(spec.equation, spec.start, spec.end, spec.step);
+          x = series.x;
+          y = series.y;
+        }
+
+        data = [{
+          x,
+          y,
+          type: "scatter",
+          mode: spec.mode || "lines",
+          name: spec.name || "f(x)"
+        }];
+      } else if (spec.type === "bar") {
+        data = [{
+          x: spec.x,
+          y: spec.y,
+          type: "bar",
+          name: spec.name || "Bar Series"
+        }];
+      } else if (spec.type === "scatter") {
+        data = [{
+          x: spec.x,
+          y: spec.y,
+          type: "scatter",
+          mode: "markers",
+          name: spec.name || "Scatter Series"
+        }];
+      } else if (spec.type === "pie") {
+        data = [{
+          labels: spec.labels,
+          values: spec.values,
+          type: "pie"
+        }];
+      } else if (spec.type === "histogram") {
+        data = [{
+          x: spec.x.length ? spec.x : spec.y,
+          type: "histogram",
+          name: spec.name || "Histogram"
+        }];
+      } else {
+        throw new Error(`Unsupported chart type: ${spec.type}`);
+      }
+
+      Plotly.newPlot(els.chart, data, layout, { responsive: true });
+    }
+
+    function copyText(text) {
+      return navigator.clipboard.writeText(text);
+    }
+
+    async function copyAnswer() {
+      const text = state.lastAnswer || "";
+      if (!text) return;
+      await copyText(text);
+      alert("Answer copied.");
+    }
+
+    async function copySteps() {
+      const text = state.lastSteps || "";
+      if (!text) return;
+      await copyText(text);
+      alert("Steps copied.");
+    }
+
+    function buildTextReport() {
+      return `
+UNIVERSAL MATH SOLVER REPORT
+Generated: ${state.reportTimestamp || currentTimestamp()}
+
+QUESTION
+${state.lastQuestion || ""}
+
+ANSWER
+${state.lastAnswer || ""}
+
+STEPS
+${state.lastSteps || ""}
+
+OCR / EXTRACTED TEXT
+${state.ocrText || state.pdfText || ""}
+
+METHOD
+${state.lastMethod || ""}
+
+CHART SPEC
+${state.lastChartSpec ? JSON.stringify(state.lastChartSpec, null, 2) : "None"}
+      `.trim();
+    }
+
+    function buildHtmlReport() {
+      const chartSpecText = state.lastChartSpec
+        ? safeHtml(JSON.stringify(state.lastChartSpec, null, 2))
+        : "None";
+
+      return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Math Solver Report</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      padding: 30px;
+      color: #111827;
+      background: #ffffff;
+      line-height: 1.6;
+    }
+    h1, h2 {
+      margin-bottom: 8px;
+    }
+    .box {
+      border: 1px solid #d6dfeb;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 18px;
+      white-space: pre-wrap;
+    }
+    .muted {
+      color: #526172;
+    }
+    code, pre {
+      font-family: Menlo, monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>Universal Math Solver Report</h1>
+  <p class="muted">Generated: ${safeHtml(state.reportTimestamp || currentTimestamp())}</p>
+
+  <h2>Question</h2>
+  <div class="box">${safeHtml(state.lastQuestion || "")}</div>
+
+  <h2>Answer</h2>
+  <div class="box">${safeHtml(state.lastAnswer || "")}</div>
+
+  <h2>Step by step work</h2>
+  <div class="box">${safeHtml(state.lastSteps || "")}</div>
+
+  <h2>OCR / extracted text</h2>
+  <div class="box">${safeHtml(state.ocrText || state.pdfText || "")}</div>
+
+  <h2>Method</h2>
+  <div class="box">${safeHtml(state.lastMethod || "")}</div>
+
+  <h2>Chart spec</h2>
+  <div class="box"><pre>${chartSpecText}</pre></div>
+</body>
+</html>
+      `.trim();
+    }
+
+    function downloadFile(filename, content, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadTxtReport() {
+      const report = buildTextReport();
+      downloadFile("math_solver_report.txt", report, "text/plain;charset=utf-8");
+    }
+
+    function downloadHtmlReport() {
+      const report = buildHtmlReport();
+      downloadFile("math_solver_report.html", report, "text/html;charset=utf-8");
+    }
+
+    function loadSample() {
+      const sample = `solve x^2 - 5x + 6 = 0`;
+      els.problemInput.value = sample;
+      els.chartConfig.value = JSON.stringify({
+        type: "line",
+        equation: "x^2 - 5*x + 6",
+        title: "Quadratic Plot",
+        xTitle: "x",
+        yTitle: "y",
+        start: -5,
+        end: 8,
+        step: 0.1
+      }, null, 2);
+      updateMathPreview();
+    }
+
+    function clearUploads() {
+      state.uploadedImageFile = null;
+      state.uploadedPdfFile = null;
+      state.imageDataUrl = null;
+      state.pdfText = "";
+      state.ocrText = "";
+      els.imageUpload.value = "";
+      els.pdfUpload.value = "";
+      els.imagePreview.src = "";
+      els.imagePreview.style.display = "none";
+      els.pdfCanvas.style.display = "none";
+      setOCR("Nothing extracted yet.");
+      setStatus("Uploads cleared.");
+    }
+
+    function clearAll() {
+      els.problemInput.value = "";
+      els.chartConfig.value = "";
+      setAnswer("No answer yet.");
+      setSteps("No steps yet.");
+      setOCR("Nothing extracted yet.");
+      clearUploads();
+      Plotly.purge(els.chart);
+      els.mathPreview.textContent = "Math preview will appear here when possible.";
+      state.lastAnswer = "";
+      state.lastSteps = "";
+      state.lastQuestion = "";
+      state.lastMethod = "";
+      state.lastChartSpec = null;
+      state.reportTimestamp = "";
+    }
+
+    els.themeToggle.addEventListener("click", toggleTheme);
+    els.problemInput.addEventListener("input", updateMathPreview);
+
+    els.imageUpload.addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        await handleImageUpload(file);
+      } catch (err) {
+        setStatus(`Image load error: ${err.message}`);
+      }
+    });
+
+    els.pdfUpload.addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        await handlePdfUpload(file);
+      } catch (err) {
+        setStatus(`PDF load error: ${err.message}`);
+      }
+    });
+
+    els.extractFromUploads.addEventListener("click", extractFromUploads);
+    els.clearUploads.addEventListener("click", clearUploads);
+    els.solveBtn.addEventListener("click", solveProblem);
+    els.renderChartBtn.addEventListener("click", () => {
+      try {
+        const spec = deriveChartSpec(els.problemInput.value.trim(), els.chartConfig.value.trim());
+        renderChartFromSpec(spec);
+      } catch (err) {
+        alert(`Chart error: ${err.message}`);
+      }
+    });
+    els.sampleBtn.addEventListener("click", loadSample);
+    els.clearBtn.addEventListener("click", clearAll);
+    els.copyAnswerBtn.addEventListener("click", copyAnswer);
+    els.copyStepsBtn.addEventListener("click", copySteps);
+    els.downloadTxtBtn.addEventListener("click", downloadTxtReport);
+    els.downloadHtmlBtn.addEventListener("click", downloadHtmlReport);
+
+    initTheme();
+    updateMathPreview();
+
+    setAnswer("Ready.");
+    setSteps([
+      "Enter a math problem, chart request, or upload content.",
+      "For broad symbolic accuracy, use API preferred mode.",
+      "For quick arithmetic and common algebra, local mode works immediately."
+    ].join("\n"));
+  </script>
+</body>
+</html>
