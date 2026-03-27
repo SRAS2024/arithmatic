@@ -1,0 +1,23 @@
+{
+  "name": "arithmetic-math-solver",
+  "version": "1.0.0",
+  "description": "Arithmetic – Premium full-stack math solving platform with OCR, graphing, and report generation",
+  "private": true,
+  "scripts": {
+    "start": "meteor run",
+    "build": "meteor build --directory ../build",
+    "test": "meteor test --driver-package meteortesting:mocha",
+    "start-python": "cd python && pip install -r requirements.txt && python -m uvicorn app.main:app --host 0.0.0.0 --port 5000",
+    "railway-start": "bash scripts/railway-start.sh"
+  },
+  "meteor": {
+    "mainModule": {
+      "client": "client/main.js",
+      "server": "server/main.js"
+    }
+  },
+  "dependencies": {
+    "meteor-node-stubs": "^1.2.5",
+    "@babel/runtime": "^7.23.0"
+  }
+}

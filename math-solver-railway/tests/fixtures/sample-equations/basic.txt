@@ -1,0 +1,16 @@
+2 + 3
+15 * 7
+144 / 12
+2^10
+sqrt(144)
+2x + 5 = 17
+x^2 - 5x + 6 = 0
+3x + 2y = 12, x - y = 1
+differentiate x^3 + 2x^2 - x + 5
+integrate sin(x) dx
+limit (sin(x)/x) as x -> 0
+sum 1/n^2 from n=1 to infinity
+det [[1,2],[3,4]]
+mean of 10, 20, 30, 40, 50
+factor x^4 - 16
+plot sin(x) from -2*pi to 2*pi

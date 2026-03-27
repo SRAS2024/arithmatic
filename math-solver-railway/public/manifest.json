@@ -1,0 +1,16 @@
+{
+  "name": "Arithmetic",
+  "short_name": "Arithmetic",
+  "description": "Premium Mathematical Intelligence Platform - Solve, Graph, and Export",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1115",
+  "theme_color": "#5e6ad2",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+/* OCRPreview styles */
+
+.ocr-preview-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ocr-confidence {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  align-self: flex-start;
+}
+
+.ocr-confidence.confidence-high {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+.ocr-confidence.confidence-medium {
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+}
+
+.ocr-confidence.confidence-low {
+  background: var(--error-bg);
+  color: var(--error);
+  border: 1px solid var(--error);
+}
+
+.ocr-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ocr-section-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+}
+
+.ocr-raw-text {
+  padding: 12px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 120px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+.ocr-norm-text {
+  padding: 12px 14px;
+  background: var(--bg-accent);
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--accent-primary);
+  word-break: break-word;
+}
+
+.ocr-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.ocr-actions .btn {
+  flex: 1;
+}
