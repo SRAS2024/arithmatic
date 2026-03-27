@@ -1,0 +1,113 @@
+/* AnswerPanel styles */
+
+.answer-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.answer-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.answer-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.answer-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.confidence-badge.high {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.confidence-badge.medium {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.confidence-badge.low {
+  background: var(--error-bg);
+  color: var(--error);
+}
+
+.source-badge {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+/* Main answer */
+.answer-main {
+  padding: 24px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-x: auto;
+}
+
+.answer-katex {
+  font-size: 24px;
+  color: var(--text-primary);
+}
+
+/* Sub-answers grid */
+.answer-sub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.answer-sub-item {
+  padding: 12px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+}
+
+.answer-sub-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+  margin-bottom: 6px;
+}
+
+.answer-sub-value {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  word-break: break-word;
+  overflow-x: auto;
+}
+
+/* Copy button */
+.btn-copy-answer {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.btn-copy-answer svg {
+  flex-shrink: 0;
+}

@@ -1,0 +1,33 @@
+/* Solution Report Print Styles */
+@page {
+    margin: 2cm;
+    size: A4;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.7;
+    color: #1a1a2e;
+}
+
+h1, h2, h3 {
+    page-break-after: avoid;
+}
+
+.section {
+    page-break-inside: avoid;
+}
+
+.graph-container {
+    page-break-inside: avoid;
+}
+
+.steps-list li {
+    page-break-inside: avoid;
+}
+
+.footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}

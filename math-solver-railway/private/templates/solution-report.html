@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arithmetic - Solution Report</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #ffffff;
+            color: #1a1a2e;
+            line-height: 1.7;
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .report-header {
+            text-align: center;
+            padding-bottom: 30px;
+            border-bottom: 3px solid #5e6ad2;
+            margin-bottom: 30px;
+        }
+        .report-header h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #5e6ad2, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .report-header .subtitle {
+            color: #6b7280;
+            font-size: 0.95rem;
+        }
+        .meta-info {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 30px;
+            padding: 16px 20px;
+            background: #f8f9fc;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            color: #4b5563;
+        }
+        .section {
+            margin-bottom: 28px;
+        }
+        .section h2 {
+            font-size: 1.15rem;
+            color: #5e6ad2;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .problem-box {
+            background: #f0f1ff;
+            border: 1px solid #d4d6f0;
+            border-radius: 10px;
+            padding: 16px 20px;
+            font-size: 1.05rem;
+            font-family: 'Cambria Math', 'Times New Roman', serif;
+        }
+        .answer-box {
+            background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+            border: 1px solid #86efac;
+            border-radius: 10px;
+            padding: 20px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            text-align: center;
+        }
+        .steps-list {
+            list-style: none;
+            counter-reset: step-counter;
+        }
+        .steps-list li {
+            counter-increment: step-counter;
+            padding: 12px 16px 12px 48px;
+            position: relative;
+            margin-bottom: 8px;
+            background: #fafbff;
+            border-radius: 8px;
+            border: 1px solid #e8eaf0;
+        }
+        .steps-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 14px;
+            top: 12px;
+            width: 24px;
+            height: 24px;
+            background: #5e6ad2;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .graph-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .graph-container img {
+            max-width: 100%;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+        }
+        .confidence-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .confidence-high { background: #dcfce7; color: #166534; }
+        .confidence-medium { background: #fef3c7; color: #92400e; }
+        .confidence-low { background: #fee2e2; color: #991b1b; }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            color: #9ca3af;
+            font-size: 0.85rem;
+        }
+        @media print {
+            body { padding: 20px; }
+            .meta-info { background: #f5f5f5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-header">
+        <h1>Arithmetic</h1>
+        <p class="subtitle">Mathematical Solution Report</p>
+    </div>
+
+    <div class="meta-info">
+        <span><strong>Date:</strong> {{timestamp}}</span>
+        <span><strong>Source:</strong> {{sourceType}}</span>
+        <span><strong>Method:</strong> {{method}}</span>
+    </div>
+
+    <div class="section">
+        <h2>Problem</h2>
+        <div class="problem-box">{{problem}}</div>
+    </div>
+
+    {{#if extractedText}}
+    <div class="section">
+        <h2>Extracted Text</h2>
+        <div class="problem-box" style="font-size: 0.95rem; font-family: monospace;">{{extractedText}}</div>
+    </div>
+    {{/if}}
+
+    <div class="section">
+        <h2>Final Answer</h2>
+        <div class="answer-box">{{answer}}</div>
+        {{#if simplified}}
+        <p style="margin-top: 10px; color: #6b7280;">Simplified: {{simplified}}</p>
+        {{/if}}
+        {{#if decimalApprox}}
+        <p style="color: #6b7280;">Decimal Approximation: {{decimalApprox}}</p>
+        {{/if}}
+    </div>
+
+    {{#if steps}}
+    <div class="section">
+        <h2>Step-by-Step Solution</h2>
+        <ol class="steps-list">
+            {{#each steps}}
+            <li>{{this}}</li>
+            {{/each}}
+        </ol>
+    </div>
+    {{/if}}
+
+    {{#if graphBase64}}
+    <div class="section">
+        <h2>Graph</h2>
+        <div class="graph-container">
+            <img src="data:image/png;base64,{{graphBase64}}" alt="Solution graph">
+        </div>
+    </div>
+    {{/if}}
+
+    {{#if confidence}}
+    <div class="section">
+        <h2>Confidence</h2>
+        <span class="confidence-badge confidence-{{confidenceLevel}}">{{confidence}}</span>
+    </div>
+    {{/if}}
+
+    <div class="footer">
+        <p>Generated by Arithmetic &mdash; Premium Mathematical Intelligence Platform</p>
+        <p>{{timestamp}}</p>
+    </div>
+</body>
+</html>
