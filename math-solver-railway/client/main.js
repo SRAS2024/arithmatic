@@ -22,8 +22,8 @@ import { initRouter } from './routes/index';
 
 // Global application state using ReactiveVar
 export const AppState = {
-  theme: new ReactiveVar(localStorage.getItem('arithmetic-theme') || 'light'),
-  inputMode: new ReactiveVar('type'),        // 'type' | 'image' | 'pdf' | 'handwritten'
+  theme: new ReactiveVar(localStorage.getItem('arithmetic-theme') || 'dark'),
+  inputMode: new ReactiveVar('type'),        // 'type' | 'handwrite'
   currentProblem: new ReactiveVar(''),
   solverResult: new ReactiveVar(null),
   isLoading: new ReactiveVar(false),
@@ -31,14 +31,19 @@ export const AppState = {
   ocrResult: new ReactiveVar(null),
   graphData: new ReactiveVar(null),
   uploadedFile: new ReactiveVar(null),
-  solverMode: new ReactiveVar('auto'),        // 'auto' | 'local' | 'api'
+  solverMode: new ReactiveVar('auto'),
   options: new ReactiveVar({
     detailedSteps: true,
-    autoGraph: false,
+    autoGraph: true,
     crossVerify: false,
   }),
   error: new ReactiveVar(null),
   statusMessage: new ReactiveVar(null),
+
+  // Chat state
+  chatMessages: new ReactiveVar([]),   // Array of { id, role, problem, answer, steps, graph, latex, confidence, sourceType, problemType, timestamp }
+  sidebarOpen: new ReactiveVar(false),
+  handwriteMode: new ReactiveVar(false),
 };
 
 // Initialize the application when DOM is ready
