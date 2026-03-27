@@ -1,298 +1,238 @@
-"""
-Report Service - Generate PDF and HTML solution reports.
-"""
-import io
+"""PDF report generation service using ReportLab."""
+
 import base64
+import io
+import logging
 from datetime import datetime
 from typing import Optional
 
+logger = logging.getLogger(__name__)
+
+try:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.platypus import (
+        SimpleDocTemplate,
+        Paragraph,
+        Spacer,
+        Table,
+        TableStyle,
+        Image as RLImage,
+        HRFlowable,
+    )
+    _RL_AVAILABLE = True
+except ImportError:
+    _RL_AVAILABLE = False
+
 
 class ReportService:
-    """Generate professional solution reports in PDF and HTML formats."""
+    """Generate professional PDF reports for math solutions."""
 
-    @staticmethod
-    def generate_pdf(data: dict) -> bytes:
-        """Generate a PDF solution report.
+    def generate_pdf(self, data: dict) -> bytes:
+        """Generate a PDF report and return the raw bytes.
 
         Args:
-            data: Dict with problem, answer, steps, latex, graph_base64, source_type, timestamp
+            data: dict with keys problem, answer, steps, latex,
+                  graph_base64, source_type, timestamp.
 
         Returns:
-            PDF file bytes
+            Raw PDF bytes.
         """
+        return self._build_pdf(
+            problem=data.get("problem", ""),
+            answer=data.get("answer", ""),
+            steps=data.get("steps", []),
+            latex=data.get("latex"),
+            graph_base64=data.get("graph_base64"),
+            title=data.get("title", "Math Solution Report"),
+            include_timestamp=data.get("include_timestamp", True),
+        )
+
+    def generate_report(
+        self,
+        problem: str,
+        answer: str,
+        steps: Optional[list] = None,
+        latex: Optional[str] = None,
+        graph_base64: Optional[str] = None,
+        title: str = "Math Solution Report",
+        include_timestamp: bool = True,
+    ) -> dict:
+        """Generate a PDF report and return dict compatible with ReportResponse.
+
+        This is the entry point used by the /report route.
+        """
+        if not _RL_AVAILABLE:
+            return {"pdf_base64": "", "filename": "report.pdf", "error": "reportlab is not installed"}
+
         try:
-            from reportlab.lib import colors
-            from reportlab.lib.pagesizes import A4
-            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-            from reportlab.lib.units import inch, mm
-            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, HRFlowable
-            from reportlab.lib.enums import TA_CENTER, TA_LEFT
-        except ImportError:
-            raise RuntimeError('reportlab not installed')
+            pdf_bytes = self._build_pdf(
+                problem=problem,
+                answer=answer,
+                steps=steps or [],
+                latex=latex,
+                graph_base64=graph_base64,
+                title=title,
+                include_timestamp=include_timestamp,
+            )
+            pdf_b64 = base64.b64encode(pdf_bytes).decode("ascii")
+            timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"math_report_{timestamp_str}.pdf"
+            return {"pdf_base64": pdf_b64, "filename": filename}
+        except Exception as exc:
+            logger.error("Report generation failed: %s", exc)
+            return {"pdf_base64": "", "filename": "report.pdf", "error": str(exc)}
+
+    # ------------------------------------------------------------------
+    # Internal
+    # ------------------------------------------------------------------
+
+    def _build_pdf(
+        self,
+        problem: str,
+        answer: str,
+        steps: list,
+        latex: Optional[str],
+        graph_base64: Optional[str],
+        title: str,
+        include_timestamp: bool,
+    ) -> bytes:
+        if not _RL_AVAILABLE:
+            raise RuntimeError("reportlab is not installed")
 
         buf = io.BytesIO()
-        doc = SimpleDocTemplate(buf, pagesize=A4,
-                               topMargin=30*mm, bottomMargin=25*mm,
-                               leftMargin=25*mm, rightMargin=25*mm)
+        doc = SimpleDocTemplate(
+            buf,
+            pagesize=letter,
+            topMargin=0.75 * inch,
+            bottomMargin=0.75 * inch,
+            leftMargin=0.75 * inch,
+            rightMargin=0.75 * inch,
+        )
 
         styles = getSampleStyleSheet()
 
         # Custom styles
         title_style = ParagraphStyle(
-            'ReportTitle', parent=styles['Title'],
-            fontSize=24, textColor=colors.HexColor('#5e6ad2'),
-            spaceAfter=6, alignment=TA_CENTER
-        )
-        subtitle_style = ParagraphStyle(
-            'ReportSubtitle', parent=styles['Normal'],
-            fontSize=10, textColor=colors.HexColor('#6b7280'),
-            alignment=TA_CENTER, spaceAfter=20
+            "ReportTitle",
+            parent=styles["Title"],
+            fontSize=20,
+            spaceAfter=6,
+            textColor=colors.HexColor("#1e3a5f"),
         )
         heading_style = ParagraphStyle(
-            'SectionHeading', parent=styles['Heading2'],
-            fontSize=14, textColor=colors.HexColor('#5e6ad2'),
-            spaceBefore=16, spaceAfter=8,
-            borderWidth=0, borderPadding=0
+            "ReportHeading",
+            parent=styles["Heading2"],
+            fontSize=14,
+            spaceBefore=12,
+            spaceAfter=6,
+            textColor=colors.HexColor("#2563eb"),
         )
         body_style = ParagraphStyle(
-            'ReportBody', parent=styles['Normal'],
-            fontSize=11, leading=16, spaceAfter=8,
-            textColor=colors.HexColor('#374151')
+            "ReportBody",
+            parent=styles["BodyText"],
+            fontSize=11,
+            leading=16,
         )
-        answer_style = ParagraphStyle(
-            'AnswerStyle', parent=styles['Normal'],
-            fontSize=16, leading=22, alignment=TA_CENTER,
-            textColor=colors.HexColor('#065f46'),
-            backColor=colors.HexColor('#ecfdf5'),
-            borderWidth=1, borderColor=colors.HexColor('#86efac'),
-            borderPadding=12, borderRadius=8,
-            spaceAfter=12
+        math_style = ParagraphStyle(
+            "ReportMath",
+            parent=styles["BodyText"],
+            fontSize=12,
+            leading=18,
+            fontName="Courier",
+            leftIndent=20,
+            backColor=colors.HexColor("#f3f4f6"),
+            borderPadding=8,
+            spaceBefore=4,
+            spaceAfter=4,
         )
         step_style = ParagraphStyle(
-            'StepStyle', parent=styles['Normal'],
-            fontSize=10, leading=15, leftIndent=20,
-            textColor=colors.HexColor('#374151'),
-            spaceAfter=4
+            "ReportStep",
+            parent=styles["BodyText"],
+            fontSize=11,
+            leading=15,
+            leftIndent=20,
+            bulletIndent=10,
         )
-        meta_style = ParagraphStyle(
-            'MetaStyle', parent=styles['Normal'],
-            fontSize=9, textColor=colors.HexColor('#9ca3af'),
-            alignment=TA_CENTER
+        answer_style = ParagraphStyle(
+            "ReportAnswer",
+            parent=styles["BodyText"],
+            fontSize=13,
+            leading=18,
+            fontName="Helvetica-Bold",
+            textColor=colors.HexColor("#16a34a"),
+            spaceBefore=6,
+            spaceAfter=6,
         )
 
-        story = []
+        elements = []
 
-        # Header
-        story.append(Paragraph('Arithmetic', title_style))
-        story.append(Paragraph('Mathematical Solution Report', subtitle_style))
-        story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#5e6ad2'), spaceAfter=15))
+        # --- Header ---
+        elements.append(Paragraph(self._escape(title), title_style))
+        if include_timestamp:
+            ts = datetime.now().strftime("%B %d, %Y at %H:%M")
+            elements.append(Paragraph(f"Generated: {ts}", body_style))
+        elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#cbd5e1")))
+        elements.append(Spacer(1, 12))
 
-        # Meta info
-        timestamp = data.get('timestamp', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        source_type = data.get('source_type', 'typed')
-        method = data.get('method', 'auto')
-        meta_text = f'Date: {timestamp} &nbsp; | &nbsp; Source: {source_type} &nbsp; | &nbsp; Method: {method}'
-        story.append(Paragraph(meta_text, meta_style))
-        story.append(Spacer(1, 15))
+        # --- Problem ---
+        elements.append(Paragraph("Problem", heading_style))
+        elements.append(Paragraph(self._escape(problem), body_style))
+        elements.append(Spacer(1, 8))
 
-        # Problem
-        problem = data.get('problem', 'N/A')
-        story.append(Paragraph('Problem', heading_style))
-        story.append(Paragraph(ReportService._escape(problem), body_style))
-        story.append(Spacer(1, 8))
-
-        # Extracted text (if from upload)
-        extracted = data.get('extracted_text', '')
-        if extracted:
-            story.append(Paragraph('Extracted Text', heading_style))
-            story.append(Paragraph(ReportService._escape(extracted), body_style))
-            story.append(Spacer(1, 8))
-
-        # Answer
-        answer = data.get('answer', 'N/A')
-        story.append(Paragraph('Final Answer', heading_style))
-        story.append(Paragraph(f'<b>{ReportService._escape(answer)}</b>', answer_style))
-
-        # Simplified / Decimal
-        simplified = data.get('simplified', '')
-        decimal_approx = data.get('decimal_approx', '')
-        if simplified:
-            story.append(Paragraph(f'Simplified: {ReportService._escape(simplified)}', body_style))
-        if decimal_approx:
-            story.append(Paragraph(f'Decimal Approximation: {ReportService._escape(decimal_approx)}', body_style))
-        story.append(Spacer(1, 8))
-
-        # Steps
-        steps = data.get('steps', [])
+        # --- Solution Steps ---
         if steps:
-            story.append(Paragraph('Step-by-Step Solution', heading_style))
+            elements.append(Paragraph("Solution Steps", heading_style))
             for i, step in enumerate(steps, 1):
-                story.append(Paragraph(f'<b>Step {i}:</b> {ReportService._escape(str(step))}', step_style))
-            story.append(Spacer(1, 8))
+                text = f"<b>Step {i}:</b> {self._escape(step)}"
+                elements.append(Paragraph(text, step_style))
+            elements.append(Spacer(1, 8))
 
-        # Graph
-        graph_b64 = data.get('graph_base64', '')
-        if graph_b64:
-            story.append(Paragraph('Graph', heading_style))
+        # --- Answer ---
+        elements.append(Paragraph("Answer", heading_style))
+        elements.append(Paragraph(self._escape(answer), answer_style))
+        elements.append(Spacer(1, 8))
+
+        # --- LaTeX ---
+        if latex:
+            elements.append(Paragraph("Mathematical Notation", heading_style))
+            elements.append(Paragraph(self._escape(latex), math_style))
+            elements.append(Spacer(1, 8))
+
+        # --- Graph ---
+        if graph_base64:
             try:
-                img_data = base64.b64decode(graph_b64)
-                img_buf = io.BytesIO(img_data)
-                img = Image(img_buf, width=5*inch, height=3*inch)
-                story.append(img)
-                story.append(Spacer(1, 12))
-            except Exception:
-                story.append(Paragraph('(Graph could not be embedded)', body_style))
+                graph_bytes = base64.b64decode(graph_base64)
+                img_buf = io.BytesIO(graph_bytes)
+                elements.append(Paragraph("Graph", heading_style))
+                rl_img = RLImage(img_buf, width=5 * inch, height=3.75 * inch)
+                elements.append(rl_img)
+                elements.append(Spacer(1, 8))
+            except Exception as exc:
+                logger.warning("Could not embed graph in report: %s", exc)
 
-        # Confidence
-        confidence = data.get('confidence', '')
-        if confidence:
-            story.append(Paragraph('Confidence', heading_style))
-            story.append(Paragraph(f'{confidence}', body_style))
+        # --- Footer line ---
+        elements.append(Spacer(1, 20))
+        elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#cbd5e1")))
+        footer_style = ParagraphStyle(
+            "Footer",
+            parent=styles["Normal"],
+            fontSize=8,
+            textColor=colors.gray,
+        )
+        elements.append(Paragraph("Generated by Arithmetic Math Solver", footer_style))
 
-        # Footer
-        story.append(Spacer(1, 30))
-        story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e5e7eb')))
-        story.append(Spacer(1, 8))
-        story.append(Paragraph(
-            f'Generated by Arithmetic — Premium Mathematical Intelligence Platform<br/>{timestamp}',
-            meta_style
-        ))
-
-        doc.build(story)
+        doc.build(elements)
         return buf.getvalue()
 
     @staticmethod
-    def generate_html(data: dict) -> str:
-        """Generate an HTML solution report.
-
-        Args:
-            data: Dict with problem, answer, steps, etc.
-
-        Returns:
-            HTML string
-        """
-        timestamp = data.get('timestamp', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        source_type = data.get('source_type', 'typed')
-        method = data.get('method', 'auto')
-        problem = ReportService._escape(data.get('problem', 'N/A'))
-        answer = ReportService._escape(data.get('answer', 'N/A'))
-        simplified = data.get('simplified', '')
-        decimal_approx = data.get('decimal_approx', '')
-        steps = data.get('steps', [])
-        extracted = data.get('extracted_text', '')
-        graph_b64 = data.get('graph_base64', '')
-        confidence = data.get('confidence', '')
-
-        steps_html = ''
-        if steps:
-            items = ''.join(f'<li>{ReportService._escape(str(s))}</li>' for s in steps)
-            steps_html = f'''
-            <div class="section">
-                <h2>Step-by-Step Solution</h2>
-                <ol class="steps-list">{items}</ol>
-            </div>'''
-
-        extracted_html = ''
-        if extracted:
-            extracted_html = f'''
-            <div class="section">
-                <h2>Extracted Text</h2>
-                <div class="problem-box" style="font-family: monospace; font-size: 0.95rem;">{ReportService._escape(extracted)}</div>
-            </div>'''
-
-        graph_html = ''
-        if graph_b64:
-            graph_html = f'''
-            <div class="section">
-                <h2>Graph</h2>
-                <div class="graph-container">
-                    <img src="data:image/png;base64,{graph_b64}" alt="Solution graph">
-                </div>
-            </div>'''
-
-        extra_html = ''
-        if simplified:
-            extra_html += f'<p style="margin-top:10px;color:#6b7280;">Simplified: {ReportService._escape(simplified)}</p>'
-        if decimal_approx:
-            extra_html += f'<p style="color:#6b7280;">Decimal: {ReportService._escape(decimal_approx)}</p>'
-
-        confidence_html = ''
-        if confidence:
-            level = 'high' if 'high' in str(confidence).lower() else ('medium' if 'medium' in str(confidence).lower() else 'low')
-            confidence_html = f'''
-            <div class="section">
-                <h2>Confidence</h2>
-                <span class="confidence-badge confidence-{level}">{ReportService._escape(str(confidence))}</span>
-            </div>'''
-
-        html = f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arithmetic - Solution Report</title>
-    <style>
-        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-        body {{ font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #fff; color: #1a1a2e; line-height: 1.7; padding: 40px; max-width: 800px; margin: 0 auto; }}
-        .report-header {{ text-align: center; padding-bottom: 30px; border-bottom: 3px solid #5e6ad2; margin-bottom: 30px; }}
-        .report-header h1 {{ font-size: 2rem; color: #5e6ad2; margin-bottom: 8px; }}
-        .report-header .subtitle {{ color: #6b7280; font-size: 0.95rem; }}
-        .meta-info {{ display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 30px; padding: 16px 20px; background: #f8f9fc; border-radius: 12px; font-size: 0.9rem; color: #4b5563; }}
-        .section {{ margin-bottom: 28px; }}
-        .section h2 {{ font-size: 1.15rem; color: #5e6ad2; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; }}
-        .problem-box {{ background: #f0f1ff; border: 1px solid #d4d6f0; border-radius: 10px; padding: 16px 20px; font-size: 1.05rem; }}
-        .answer-box {{ background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border: 1px solid #86efac; border-radius: 10px; padding: 20px; font-size: 1.2rem; font-weight: 600; text-align: center; }}
-        .steps-list {{ list-style: none; counter-reset: step-counter; }}
-        .steps-list li {{ counter-increment: step-counter; padding: 12px 16px 12px 48px; position: relative; margin-bottom: 8px; background: #fafbff; border-radius: 8px; border: 1px solid #e8eaf0; }}
-        .steps-list li::before {{ content: counter(step-counter); position: absolute; left: 14px; top: 12px; width: 24px; height: 24px; background: #5e6ad2; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 600; }}
-        .graph-container {{ text-align: center; margin: 20px 0; }}
-        .graph-container img {{ max-width: 100%; border-radius: 10px; border: 1px solid #e5e7eb; }}
-        .confidence-badge {{ display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; }}
-        .confidence-high {{ background: #dcfce7; color: #166534; }}
-        .confidence-medium {{ background: #fef3c7; color: #92400e; }}
-        .confidence-low {{ background: #fee2e2; color: #991b1b; }}
-        .footer {{ margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 0.85rem; }}
-    </style>
-</head>
-<body>
-    <div class="report-header">
-        <h1>Arithmetic</h1>
-        <p class="subtitle">Mathematical Solution Report</p>
-    </div>
-    <div class="meta-info">
-        <span><strong>Date:</strong> {timestamp}</span>
-        <span><strong>Source:</strong> {source_type}</span>
-        <span><strong>Method:</strong> {method}</span>
-    </div>
-    <div class="section">
-        <h2>Problem</h2>
-        <div class="problem-box">{problem}</div>
-    </div>
-    {extracted_html}
-    <div class="section">
-        <h2>Final Answer</h2>
-        <div class="answer-box">{answer}</div>
-        {extra_html}
-    </div>
-    {steps_html}
-    {graph_html}
-    {confidence_html}
-    <div class="footer">
-        <p>Generated by Arithmetic &mdash; Premium Mathematical Intelligence Platform</p>
-        <p>{timestamp}</p>
-    </div>
-</body>
-</html>'''
-        return html
-
-    @staticmethod
     def _escape(text: str) -> str:
-        """Escape HTML special characters."""
+        """Escape XML-sensitive characters for ReportLab Paragraph."""
         if not text:
-            return ''
-        return (text
-                .replace('&', '&amp;')
-                .replace('<', '&lt;')
-                .replace('>', '&gt;')
-                .replace('"', '&quot;')
-                .replace("'", '&#39;'))
+            return ""
+        text = text.replace("&", "&amp;")
+        text = text.replace("<", "&lt;")
+        text = text.replace(">", "&gt;")
+        return text
