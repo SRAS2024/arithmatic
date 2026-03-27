@@ -1,57 +1,12 @@
-/* App-level layout styles */
+/* App.css - Minimal app-level styles (chat layout in main.css) */
 
-#app {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.app-container {
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 24px 48px;
-}
-
-.app-columns {
-  display: grid;
-  grid-template-columns: 420px 1fr;
-  gap: 28px;
-  align-items: start;
-  margin-top: 28px;
-}
-
-@media (max-width: 1024px) {
-  .app-columns {
-    grid-template-columns: 380px 1fr;
-    gap: 20px;
-  }
-}
-
-@media (max-width: 768px) {
-  .app-container {
-    padding: 0 16px 32px;
-  }
-
-  .app-columns {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    margin-top: 16px;
-  }
-}
-
-/* Card base */
+/* Common card base (used by sub-components if needed) */
 .card {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   padding: 24px;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.card:hover {
-  box-shadow: var(--shadow-md);
 }
 
 .card-title {
@@ -63,21 +18,27 @@
   margin-bottom: 16px;
 }
 
-/* Scrollbar styles */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Button base */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
 }
-
-::-webkit-scrollbar-track {
-  background: transparent;
+.btn-primary {
+  background: var(--accent-primary);
+  color: #fff;
 }
-
-::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 3px;
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-color: var(--border-color);
 }
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
-}
+.btn-secondary:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
